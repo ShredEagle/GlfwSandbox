@@ -23,11 +23,15 @@ class GlfwsandboxConan(ConanFile):
         "visibility": "hidden"
     }
 
-    #requires = ()
+    requires = (
+        ("glad/0.1.34"),
+        ("glfw/3.3.6"),
+    )
+
 
     # Note: It seems conventionnal to add CMake build requirement
     # directly to the build profile.
-    #build_requires = ()
+    build_requires = ("cmake/3.22.0")
 
     build_policy = "missing"
     generators = "cmake_paths", "cmake_find_package", "CMakeToolchain"
@@ -56,7 +60,7 @@ class GlfwsandboxConan(ConanFile):
 
 
     def configure(self):
-        tools.check_min_cppstd(self, "17")
+        tools.check_min_cppstd(self, "11")
 
 
     def generate(self):
