@@ -1,10 +1,23 @@
-# Glfwsandbox
+# Glfw Sandbox
 
 Prototype and investigate GLFW usage.
 
-## Build
+## Usage
+
+### Prerequisites
+
+* Conan (`pip3 install conan`)
+
+### Build
 
     git clone --recurse https://github.com/ShredEagle/glfwsandbox.git
     cd glfwsandbox
     mkdir build && cd build
-    cmake ..
+    conan install -s build_type=Debug ../conan/
+    conan build -sf .. ../conan/
+
+### Run
+
+    ./src/apps/gsync_windowed[/Debug]/gsync_windowed.exe
+
+Or replace `gsync_windowed` by another application.

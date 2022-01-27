@@ -1,1 +1,2 @@
+add_subdirectory(apps/glfw_gettingstarted)
 add_subdirectory(apps/gsync_windowed)
