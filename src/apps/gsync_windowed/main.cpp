@@ -1,8 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
+#include <sstream>
+#include <thread>
 
 #include <cmath>
 #include <cstdlib>
@@ -13,6 +17,8 @@
 
 const int gVsync = 1;
 const bool gPrintTimes = true;
+bool gFullscreen = true;
+
 
 static const struct
 {
@@ -46,8 +52,6 @@ static const char* fragment_shader_text =
 "    gl_FragColor = vec4(color, 1.0);\n"
 "}\n";
 
-bool gFullscreen = false;
-
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -75,6 +79,45 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
+
+struct LoggerThread
+{
+    LoggerThread() :
+        printer{
+            [this]()
+            {
+                while(true)
+                {
+                    std::string copy;
+                    {
+                        std::lock_guard<std::mutex> lock{mutex};
+                        copy = std::move(logs);
+                        logs.clear();
+                    }
+
+                    if (!copy.empty())
+                    {
+                        std::cout << copy;
+                    }
+
+                    using namespace std::chrono_literals;
+                    std::this_thread::sleep_for(5ms);
+                }
+            }}
+    {}
+
+    void log(const std::string & aLog)
+    {
+        std::lock_guard<std::mutex> lock{mutex};
+        logs += aLog;
+    }
+
+    std::mutex mutex;
+    std::string logs;
+    std::thread printer;
+};
+
+
 int main(void)
 {
     GLFWwindow* window;
@@ -88,7 +131,7 @@ int main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    window = glfwCreateWindow(1280, 1024, "Gsync sample", NULL, NULL);
+    window = glfwCreateWindow(1280, 1024, "Gsync sample", gFullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -132,9 +175,11 @@ int main(void)
     glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
                           sizeof(vertices[0]), (void*) (sizeof(float) * 2));
 
+    LoggerThread logger;
+
     double startTime = glfwGetTime();
     double intermediaryTime = 0;
-    double update, draw, swap, poll, print=0;
+    double update, draw, swap, poll, log=0;
     unsigned long frame = 0;
 
     while (!glfwWindowShouldClose(window))
@@ -166,7 +211,8 @@ int main(void)
         double newTime = glfwGetTime();
         if (gPrintTimes)
         {
-            std::cout
+            std::ostringstream oss;
+            oss
                 << std::fixed << std::setprecision(2)
                 << "Frame #" << std::setw(4) << ++frame
                 << " Total: " << std::setw(6) << (newTime - startTime) * 1000 << "ms |"
@@ -174,10 +220,11 @@ int main(void)
                 << " draw: " << std::setw(6) << draw * 1000 << "ms,"
                 << " swap: " << std::setw(6) << swap * 1000 << "ms,"
                 << " poll: " << std::setw(6) << poll * 1000 << "ms,"
-                << " prev. print: " << std::setw(6) << print * 1000 << "ms,"
+                << " prev. log: " << std::setw(6) << log * 1000 << "ms,"
                 << "\n"
             ;
-            print = glfwGetTime() - intermediaryTime;
+            logger.log(oss.str());
+            log = glfwGetTime() - intermediaryTime;
             intermediaryTime = glfwGetTime();
         }
 
