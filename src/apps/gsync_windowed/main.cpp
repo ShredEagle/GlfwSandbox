@@ -1,11 +1,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <iomanip>
 #include <iostream>
 
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
+
+// Usage
+// * Enter: toggle between windowed and fullscreen.
+
+const int gVsync = 1;
+const bool gPrintTimes = true;
 
 static const struct
 {
@@ -76,8 +83,7 @@ int main(void)
 
     glfwSetErrorCallback(error_callback);
 
-    if (!glfwInit())
-        exit(EXIT_FAILURE);
+    if (!glfwInit()) exit(EXIT_FAILURE);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -94,7 +100,7 @@ int main(void)
     glfwMakeContextCurrent(window);
     gladLoadGL();
     // VSync
-    glfwSwapInterval(1);
+    glfwSwapInterval(gVsync);
 
     // NOTE: OpenGL error checks have been omitted for brevity
 
@@ -126,26 +132,56 @@ int main(void)
     glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
                           sizeof(vertices[0]), (void*) (sizeof(float) * 2));
 
-    double time = glfwGetTime();
+    double startTime = glfwGetTime();
+    double intermediaryTime = 0;
+    double update, draw, swap, poll, print=0;
+    unsigned long frame = 0;
+
     while (!glfwWindowShouldClose(window))
     {
+        intermediaryTime = glfwGetTime();
+
         int width, height;
-
         glfwGetFramebufferSize(window, &width, &height);
-
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(program);
         glUniform2f(ubase_location, std::cos(glfwGetTime()), 0.f);
+        update = glfwGetTime() - intermediaryTime;
+        intermediaryTime = glfwGetTime();
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        draw = glfwGetTime() - intermediaryTime;
+        intermediaryTime = glfwGetTime();
 
         glfwSwapBuffers(window);
+        swap = glfwGetTime() - intermediaryTime;
+        intermediaryTime = glfwGetTime();
+
         glfwPollEvents();
+        poll = glfwGetTime() - intermediaryTime;
+        intermediaryTime = glfwGetTime();
 
         double newTime = glfwGetTime();
-        std::cout << "Time elapsed: " << newTime - time << "s.\n";
-        time = newTime;
+        if (gPrintTimes)
+        {
+            std::cout
+                << std::fixed << std::setprecision(2)
+                << "Frame #" << std::setw(4) << ++frame
+                << " Total: " << std::setw(6) << (newTime - startTime) * 1000 << "ms |"
+                << " update: " << std::setw(6) << update * 1000 << "ms."
+                << " draw: " << std::setw(6) << draw * 1000 << "ms,"
+                << " swap: " << std::setw(6) << swap * 1000 << "ms,"
+                << " poll: " << std::setw(6) << poll * 1000 << "ms,"
+                << " prev. print: " << std::setw(6) << print * 1000 << "ms,"
+                << "\n"
+            ;
+            print = glfwGetTime() - intermediaryTime;
+            intermediaryTime = glfwGetTime();
+        }
+
+        startTime = newTime;
     }
 
     glfwDestroyWindow(window);

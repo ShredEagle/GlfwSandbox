@@ -13,7 +13,7 @@ Prototype and investigate GLFW usage.
     git clone --recurse https://github.com/ShredEagle/glfwsandbox.git
     cd glfwsandbox
     mkdir build && cd build
-    conan install -s build_type=Debug ../conan/
+    conan install --build=missing ../conan/
     conan build -sf .. ../conan/
 
 ### Run
