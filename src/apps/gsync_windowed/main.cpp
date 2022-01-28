@@ -12,12 +12,17 @@
 #include <cstdlib>
 #include <cstdio>
 
+
+using namespace std::chrono_literals;
+
+
 // Usage
 // * Enter: toggle between windowed and fullscreen.
 
 const int gVsync = 1;
 const bool gPrintTimes = true;
 bool gFullscreen = true;
+std::chrono::milliseconds gSimulatedUpdateDuration = 17ms;
 
 
 static const struct
@@ -100,7 +105,6 @@ struct LoggerThread
                         std::cout << copy;
                     }
 
-                    using namespace std::chrono_literals;
                     std::this_thread::sleep_for(5ms);
                 }
             }}
@@ -116,6 +120,14 @@ struct LoggerThread
     std::string logs;
     std::thread printer;
 };
+
+
+template <class T_duration>
+void sleepBusy(T_duration aDuration)
+{
+    auto start = std::chrono::system_clock::now();
+    while((std::chrono::system_clock::now() - start) < aDuration);
+}
 
 
 int main(void)
@@ -193,6 +205,11 @@ int main(void)
 
         glUseProgram(program);
         glUniform2f(ubase_location, std::cos(glfwGetTime()), 0.f);
+
+        // Not precise enough
+        //std::this_thread::sleep_for(gSimulatedUpdateDuration);
+        sleepBusy(gSimulatedUpdateDuration);
+
         update = glfwGetTime() - intermediaryTime;
         intermediaryTime = glfwGetTime();
 
@@ -216,11 +233,11 @@ int main(void)
                 << std::fixed << std::setprecision(2)
                 << "Frame #" << std::setw(4) << ++frame
                 << " Total: " << std::setw(6) << (newTime - startTime) * 1000 << "ms |"
-                << " update: " << std::setw(6) << update * 1000 << "ms."
-                << " draw: " << std::setw(6) << draw * 1000 << "ms,"
-                << " swap: " << std::setw(6) << swap * 1000 << "ms,"
-                << " poll: " << std::setw(6) << poll * 1000 << "ms,"
-                << " prev. log: " << std::setw(6) << log * 1000 << "ms,"
+                << " update: " << std::setw(6) << update * 1000 << "ms |"
+                << " draw: " << std::setw(6) << draw * 1000 << "ms |"
+                << " swap: " << std::setw(6) << swap * 1000 << "ms |"
+                << " poll: " << std::setw(6) << poll * 1000 << "ms |"
+                << " prev. log: " << std::setw(6) << log * 1000 << "ms |"
                 << "\n"
             ;
             logger.log(oss.str());
