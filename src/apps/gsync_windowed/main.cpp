@@ -1,10 +1,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <iostream>
+
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-
 
 static const struct
 {
@@ -38,6 +39,8 @@ static const char* fragment_shader_text =
 "    gl_FragColor = vec4(color, 1.0);\n"
 "}\n";
 
+bool gFullscreen = false;
+
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -46,7 +49,23 @@ static void error_callback(int error, const char* description)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
+    {
+        if (gFullscreen)
+        {
+            glfwSetWindowMonitor(window, nullptr, 50, 50, 1280, 1024, GLFW_DONT_CARE);
+        }
+        else
+        {
+            GLFWmonitor * monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode * mode = glfwGetVideoMode(monitor);
+            glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        }
+        gFullscreen = !gFullscreen;
+    }
 }
 
 int main(void)
@@ -74,6 +93,7 @@ int main(void)
 
     glfwMakeContextCurrent(window);
     gladLoadGL();
+    // VSync
     glfwSwapInterval(1);
 
     // NOTE: OpenGL error checks have been omitted for brevity
@@ -106,6 +126,7 @@ int main(void)
     glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
                           sizeof(vertices[0]), (void*) (sizeof(float) * 2));
 
+    double time = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
         int width, height;
@@ -121,6 +142,10 @@ int main(void)
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        double newTime = glfwGetTime();
+        std::cout << "Time elapsed: " << newTime - time << "s.\n";
+        time = newTime;
     }
 
     glfwDestroyWindow(window);
